@@ -1,0 +1,10 @@
+providers = ["python", "node"]
+
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip", "nodejs_20", "bash", "coreutils", "git"]
+
+[phases.install]
+cmds = ["pip install --no-cache-dir -r requirements.txt"]
+
+[start]
+cmd = "gunicorn -w 1 --threads 8 -k gthread -t 0 -b 0.0.0.0:$PORT app:app"
