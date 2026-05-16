@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pricing · Agajayofficial VPS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head><body>
+<div class="main" style="max-width:1100px;margin:0 auto;padding:60px 24px">
+  <div class="topbar">
+    <div><h2>Choose a plan</h2><p style="color:var(--muted);margin-top:6px">Run your files on the cloud — pay as you grow.</p></div>
+    <div>{% if user %}<a class="btn" href="{{ url_for('dashboard') }}">Dashboard</a>{% else %}<a class="btn primary" href="{{ url_for('login') }}">Sign in</a>{% endif %}</div>
+  </div>
+  <div class="plans">
+    {% for key, p in plans.items() %}
+    <div class="card plan {% if key=='pro' %}feat{% endif %}">
+      <h3>{{ p.name }}</h3>
+      <div class="price">{{ p.price }}</div>
+      <ul>
+        <li>{{ p.files }} files</li>
+        <li>{{ p.days }} days access</li>
+        <li>{{ p.ram }} memory</li>
+        <li>Live logs · module install</li>
+      </ul>
+      <a class="btn primary" style="width:100%;justify-content:center" href="https://wa.me/?text=Hi%20I%20want%20{{ p.name }}%20plan">Contact owner</a>
+    </div>
+    {% endfor %}
+  </div>
+</div></body></html>

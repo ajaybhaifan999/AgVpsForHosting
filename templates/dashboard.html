@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard · Agajay VPS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head><body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">⚡ Agajay VPS</div>
+    <nav class="nav">
+      <a href="#" class="active">📁 My Files</a>
+      <a href="{{ url_for('pricing') }}">💎 Pricing</a>
+      <a href="#" onclick="openInstall();return false">📦 Install Module</a>
+    </nav>
+    <div class="spacer"></div>
+    <div style="padding:10px 12px;font-size:12px;color:var(--muted)">
+      <div>Signed in as</div>
+      <div style="color:var(--text);font-weight:600">{{ user.username }}</div>
+    </div>
+    <a class="btn" href="{{ url_for('logout') }}">Sign out</a>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2>My Servers</h2>
+      <div style="display:flex;gap:10px">
+        <label class="btn primary" for="upl">＋ Upload File</label>
+        <input id="upl" type="file" multiple style="display:none" onchange="upload(this.files)">
+      </div>
+    </div>
+
+    <div class="grid cols-3" style="margin-bottom:22px">
+      <div class="card stat"><div class="label">Files</div><div class="value">{{ files|length }} / {{ record.file_limit }}</div></div>
+      <div class="card stat"><div class="label">Plan expires</div><div class="value" style="font-size:16px">{{ record.expires_at[:10] }}</div></div>
+      <div class="card stat"><div class="label">Status</div><div class="value"><span class="tag green">Active</span></div></div>
+    </div>
+
+    <div class="card" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="font-size:16px">Files</h3>
+        <span style="color:var(--muted);font-size:12px">Supported: .py · .js · .ts · .sh</span>
+      </div>
+      <div class="files" id="files">
+        {% if not files %}<p style="color:var(--muted);text-align:center;padding:30px">No files yet — upload one to get started.</p>{% endif %}
+        {% for f in files %}
+        <div class="file-row" data-name="{{ f.name }}">
+          <div class="meta">
+            <span style="font-size:22px">📄</span>
+            <div style="min-width:0">
+              <div class="name">{{ f.name }}</div>
+              <div class="size">{{ (f.size/1024)|round(1) }} KB</div>
+            </div>
+            <span class="tag {% if f.running %}green{% else %}yellow{% endif %}" id="st-{{ loop.index }}">{{ 'Running' if f.running else 'Stopped' }}</span>
+          </div>
+          <div class="file-actions">
+            <button class="btn sm ok" onclick="runFile('{{ f.name }}', this)">▶ Run</button>
+            <button class="btn sm" onclick="stopFile('{{ f.name }}', this)">⏹ Stop</button>
+            <button class="btn sm" onclick="showLogs('{{ f.name }}')">📜 Logs</button>
+            <button class="btn sm danger" onclick="delFile('{{ f.name }}')">🗑</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card" id="logCard" style="display:none;padding:20px;margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="font-size:15px">Logs · <span id="logName" style="color:var(--accent2)"></span></h3>
+        <button class="btn sm" onclick="closeLogs()">✕ Close</button>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+  </main>
+</div>
+
+<!-- install modal -->
+<div class="modal-bg" id="installModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="card modal">
+    <h3>Install Module</h3>
+    <p class="sub">Add Python or system packages to your environment.</p>
+    <div class="row">
+      <div><label style="font-size:12px;color:var(--muted)">Manager</label>
+        <select id="mgr" class="input"><option value="pip">pip</option><option value="pkg">pkg/apt</option><option value="npm">npm</option></select>
+      </div>
+      <div><label style="font-size:12px;color:var(--muted)">Module</label>
+        <input id="mod" class="input" placeholder="e.g. requests">
+      </div>
+    </div>
+    <button class="btn primary" style="margin-top:14px;width:100%;justify-content:center" onclick="install()">Install</button>
+    <pre id="instOut" class="console" style="height:160px;margin-top:14px;display:none"></pre>
+  </div>
+</div>
+
+<script>
+let evtSrc=null;
+async function upload(files){
+  const fd=new FormData(); for(const f of files) fd.append('files',f);
+  const r=await fetch('/api/upload',{method:'POST',body:fd}); const d=await r.json();
+  if(!d.ok) alert(d.error||'Upload failed'); else location.reload();
+}
+async function runFile(n,btn){btn.disabled=true; const r=await fetch('/api/run/'+encodeURIComponent(n),{method:'POST'}); const d=await r.json(); btn.disabled=false; if(!d.ok)alert(d.error||d.message);else{showLogs(n);setTimeout(()=>location.reload(),800);}}
+async function stopFile(n){await fetch('/api/stop/'+encodeURIComponent(n),{method:'POST'}); setTimeout(()=>location.reload(),400);}
+async function delFile(n){if(!confirm('Delete '+n+'?'))return; await fetch('/api/delete/'+encodeURIComponent(n),{method:'DELETE'}); location.reload();}
+function showLogs(n){
+  document.getElementById('logCard').style.display='block';
+  document.getElementById('logName').textContent=n;
+  const c=document.getElementById('console'); c.innerHTML='';
+  if(evtSrc)evtSrc.close();
+  evtSrc=new EventSource('/api/stream/'+encodeURIComponent(n));
+  evtSrc.onmessage=e=>{const d=document.createElement('div'); d.className='ln'; d.textContent=e.data; c.appendChild(d); c.scrollTop=c.scrollHeight;};
+  document.getElementById('logCard').scrollIntoView({behavior:'smooth'});
+}
+function closeLogs(){document.getElementById('logCard').style.display='none'; if(evtSrc){evtSrc.close();evtSrc=null;}}
+function openInstall(){document.getElementById('installModal').classList.add('show');}
+async function install(){
+  const out=document.getElementById('instOut'); out.style.display='block'; out.textContent='Installing...';
+  const r=await fetch('/api/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({manager:mgr.value,module:mod.value})});
+  const d=await r.json(); out.textContent=(d.ok?'✓ OK\n':'✗ FAILED\n')+(d.stdout||'')+'\n'+(d.stderr||d.error||'');
+}
+</script>
+</body></html>

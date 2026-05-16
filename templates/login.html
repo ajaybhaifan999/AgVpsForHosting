@@ -1,1 +1,21 @@
-
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · Agajay VPS</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head><body>
+<div class="login-wrap">
+  <form method="post" class="card login-card">
+    <h1>Agajay VPS</h1>
+    <p class="sub">Professional VPS panel · sign in to continue</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <div class="field"><label>Username</label><input class="input" name="username" autofocus required></div>
+    <div class="field"><label>Password</label><input class="input" name="password" type="password" required></div>
+    <button class="btn primary" style="width:100%;justify-content:center;margin-top:8px">Sign in</button>
+    <p style="margin-top:18px;text-align:center;font-size:13px;color:var(--muted)">
+      No account? <a href="{{ url_for('pricing') }}">View pricing</a>
+    </p>
+  </form>
+</div></body></html>
